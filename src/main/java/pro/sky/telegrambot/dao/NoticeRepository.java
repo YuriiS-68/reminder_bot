@@ -4,10 +4,10 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import pro.sky.telegrambot.model.NotificationTask;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 public interface NoticeRepository extends JpaRepository<NotificationTask, Long> {
-    NotificationTask getNotificationTaskByTimeEquals(LocalDateTime time);
-
+    List<NotificationTask> getNotificationTaskByTimeEquals(LocalDateTime time);
     @Override
     void deleteById(Long id);
 }

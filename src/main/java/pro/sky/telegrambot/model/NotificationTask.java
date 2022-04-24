@@ -22,11 +22,23 @@ public class NotificationTask {
     @Column(name = "time")
     private LocalDateTime time;
 
-    public NotificationTask(Long id, long idChat, String notice, LocalDateTime time) {
+    @Column(name = "messageId")
+    private int messageId;
+
+    public NotificationTask(Long id, long idChat, String notice, LocalDateTime time, int messageId) {
         this.id = id;
         this.idChat = idChat;
         this.notice = notice;
         this.time = time;
+        this.messageId = messageId;
+    }
+
+    public int getMessageId() {
+        return messageId;
+    }
+
+    public void setMessageId(int messageId) {
+        this.messageId = messageId;
     }
 
     public NotificationTask() {
@@ -69,12 +81,13 @@ public class NotificationTask {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         NotificationTask that = (NotificationTask) o;
-        return getIdChat() == that.getIdChat() && getId().equals(that.getId()) && getNotice().equals(that.getNotice()) && Objects.equals(getTime(), that.getTime());
+        return getIdChat() == that.getIdChat() && getMessageId() == that.getMessageId() && getId().equals(that.getId())
+                && getNotice().equals(that.getNotice()) && getTime().equals(that.getTime());
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(getId(), getIdChat(), getNotice(), getTime());
+        return Objects.hash(getId(), getIdChat(), getNotice(), getTime(), getMessageId());
     }
 
     @Override
@@ -84,6 +97,7 @@ public class NotificationTask {
                 .add("idChat=" + idChat)
                 .add("notice='" + notice + "'")
                 .add("time=" + time)
+                .add("messageId=" + messageId)
                 .toString();
     }
 }

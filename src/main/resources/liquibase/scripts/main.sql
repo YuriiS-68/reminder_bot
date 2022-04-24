@@ -7,3 +7,6 @@ CREATE TABLE notification_task (
     notice VARCHAR(300) NOT NULL,
     time TIMESTAMP NOT NULL
 );
+
+-- changeset yuvis:2
+--ALTER TABLE notification_task ADD COLUMN messageId INTEGER;

@@ -16,14 +16,11 @@ import pro.sky.telegrambot.dao.NoticeRepository;
 import pro.sky.telegrambot.model.NotificationTask;
 
 import javax.annotation.PostConstruct;
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
-import java.util.Date;
+import java.util.ArrayList;
 import java.util.List;
-import java.util.Locale;
 
 @Service
 public class TelegramBotUpdatesListener implements UpdatesListener {
@@ -52,7 +49,8 @@ public class TelegramBotUpdatesListener implements UpdatesListener {
             if (update.message() != null && update.message().text().equals("/start")){
                 long chatId = message.chat().id();
                 String text = "Hello! I`m glad to see you!";
-                sendMessage(chatId, text);
+                int messageId = message.messageId();
+                sendMessage(chatId, text, messageId);
             } else {
                 noticeRepository.save(getMappingNotice(message));
             }
@@ -63,10 +61,15 @@ public class TelegramBotUpdatesListener implements UpdatesListener {
     @Scheduled(cron = "${interval-in-cron}")
     public void findAndSendNoticeByTime(){
         LocalDateTime time = LocalDateTime.now().truncatedTo(ChronoUnit.MINUTES);
-        NotificationTask notice = noticeRepository.getNotificationTaskByTimeEquals(time);
-        if (notice != null){
-            sendMessage(notice.getIdChat(), notice.getNotice());
-            noticeRepository.deleteById(notice.getId());
+        List<NotificationTask> notices = noticeRepository.getNotificationTaskByTimeEquals(time);
+
+        if (!notices.isEmpty()){
+            for (NotificationTask notice : notices){
+                if (notice != null){
+                    sendMessage(notice.getIdChat(), notice.getNotice(), notice.getMessageId());
+                    noticeRepository.deleteById(notice.getId());
+                }
+            }
         }
     }
 
@@ -78,6 +81,7 @@ public class TelegramBotUpdatesListener implements UpdatesListener {
             LocalDateTime dateTime = LocalDateTime.parse(message.text().substring(0, getIndexForSeparate(message)).trim(),
                     DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm"));
             notice.setTime(dateTime);
+            notice.setMessageId(message.messageId());
             return notice;
         }
         throw new NullPointerException("Message is not exist");
@@ -93,12 +97,12 @@ public class TelegramBotUpdatesListener implements UpdatesListener {
         return index;
     }
 
-    private void sendMessage(long chatId, String text){
+    private void sendMessage(long chatId, String text, int messageId){
         logger.info("Method sendMessage has been run: {}, {}", chatId, text);
         SendMessage request = new SendMessage(chatId, text)
                 .parseMode(ParseMode.HTML)
                 .disableWebPagePreview(true)
-                .replyToMessageId(1)
+                .replyToMessageId(messageId)
                 .replyMarkup(new ForceReply());
 
         SendResponse sendResponse = telegramBot.execute(request);
