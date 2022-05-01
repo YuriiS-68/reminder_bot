@@ -8,6 +8,4 @@ import java.util.List;
 
 public interface NoticeRepository extends JpaRepository<NotificationTask, Long> {
     List<NotificationTask> getNotificationTaskByTimeEquals(LocalDateTime time);
-    @Override
-    void deleteById(Long id);
 }

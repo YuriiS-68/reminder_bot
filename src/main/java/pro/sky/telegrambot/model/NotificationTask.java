@@ -8,40 +8,34 @@ import java.util.StringJoiner;
 @Entity
 public class NotificationTask {
     @Id
-    @SequenceGenerator(name = "notification_task_id_seq", sequenceName = "notification_task_seq", allocationSize = 1)
-    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "notification_task_id_seq")
-    @Column(name = "id", nullable = false)
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "idChat", nullable = false)
     private long idChat;
 
-    @Column(name = "notice", nullable = false)
     private String notice;
 
-    @Column(name = "time")
     private LocalDateTime time;
 
-    @Column(name = "messageId")
-    private int messageId;
+    private int idMessage;
 
-    public NotificationTask(Long id, long idChat, String notice, LocalDateTime time, int messageId) {
+    public NotificationTask(Long id, long idChat, String notice, LocalDateTime time, int idMessage) {
         this.id = id;
         this.idChat = idChat;
         this.notice = notice;
         this.time = time;
-        this.messageId = messageId;
-    }
-
-    public int getMessageId() {
-        return messageId;
-    }
-
-    public void setMessageId(int messageId) {
-        this.messageId = messageId;
+        this.idMessage = idMessage;
     }
 
     public NotificationTask() {
+    }
+
+    public int getMessageId() {
+        return idMessage;
+    }
+
+    public void setMessageId(int messageId) {
+        this.idMessage = messageId;
     }
 
     public long getIdChat() {
@@ -72,10 +66,6 @@ public class NotificationTask {
         return id;
     }
 
-    public void setId(Long id) {
-        this.id = id;
-    }
-
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
@@ -96,8 +86,8 @@ public class NotificationTask {
                 .add("id=" + id)
                 .add("idChat=" + idChat)
                 .add("notice='" + notice + "'")
-                .add("time=" + time)
-                .add("messageId=" + messageId)
+                .add("time=" + time + "'")
+                .add("messageId=" + idMessage)
                 .toString();
     }
 }

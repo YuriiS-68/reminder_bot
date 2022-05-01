@@ -2,11 +2,18 @@
 
 -- changeset yuvis:1
 CREATE TABLE notification_task (
-    id SERIAL PRIMARY KEY,
-    idChat INTEGER NOT NULL,
-    notice VARCHAR(300) NOT NULL,
+    id SERIAL NOT NULL PRIMARY KEY,
+    id_chat INTEGER NOT NULL,
+    id_message INTEGER NOT NULL,
+    notice TEXT NOT NULL,
     time TIMESTAMP NOT NULL
 );
 
 -- changeset yuvis:2
---ALTER TABLE notification_task ADD COLUMN messageId INTEGER;
+CREATE INDEX notification_task_date_idx ON notification_task(time);
+
+-- changeset yuvis:3
+--ALTER TABLE notification_task ALTER COLUMN notice TYPE TEXT;
+
+-- changeset yuvis:4
+-- ALTER TABLE notification_task DROP COLUMN messageId;

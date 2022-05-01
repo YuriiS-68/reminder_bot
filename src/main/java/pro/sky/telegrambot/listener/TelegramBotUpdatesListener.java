@@ -18,8 +18,9 @@ import pro.sky.telegrambot.model.NotificationTask;
 import javax.annotation.PostConstruct;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
 import java.time.temporal.ChronoUnit;
-import java.util.ArrayList;
+import java.util.IllegalFormatException;
 import java.util.List;
 
 @Service
@@ -46,13 +47,19 @@ public class TelegramBotUpdatesListener implements UpdatesListener {
             logger.info("Processing update: {}", update);
 
             Message message = update.message();
+            long chatId = message.chat().id();
+            int messageId = message.messageId();
             if (update.message() != null && update.message().text().equals("/start")){
-                long chatId = message.chat().id();
                 String text = "Hello! I`m glad to see you!";
-                int messageId = message.messageId();
                 sendMessage(chatId, text, messageId);
             } else {
-                noticeRepository.save(getMappingNotice(message));
+                try{
+                    noticeRepository.save(getMappingNotice(message));
+                }catch (IllegalFormatException | DateTimeParseException e){
+                    String text = "Your message format is not supported";
+                    sendMessage(chatId, text, messageId);
+                    logger.error("Saving to DB failed:", e);
+                }
             }
         });
         return UpdatesListener.CONFIRMED_UPDATES_ALL;
@@ -63,13 +70,8 @@ public class TelegramBotUpdatesListener implements UpdatesListener {
         LocalDateTime time = LocalDateTime.now().truncatedTo(ChronoUnit.MINUTES);
         List<NotificationTask> notices = noticeRepository.getNotificationTaskByTimeEquals(time);
 
-        if (!notices.isEmpty()){
-            for (NotificationTask notice : notices){
-                if (notice != null){
-                    sendMessage(notice.getIdChat(), notice.getNotice(), notice.getMessageId());
-                    noticeRepository.deleteById(notice.getId());
-                }
-            }
+        for (NotificationTask notice : notices){
+            sendMessage(notice.getIdChat(), notice.getNotice(), notice.getMessageId());
         }
     }
 
@@ -81,6 +83,7 @@ public class TelegramBotUpdatesListener implements UpdatesListener {
             LocalDateTime dateTime = LocalDateTime.parse(message.text().substring(0, getIndexForSeparate(message)).trim(),
                     DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm"));
             notice.setTime(dateTime);
+            System.out.println("message.messageId() = " + message.messageId());
             notice.setMessageId(message.messageId());
             return notice;
         }
@@ -98,7 +101,7 @@ public class TelegramBotUpdatesListener implements UpdatesListener {
     }
 
     private void sendMessage(long chatId, String text, int messageId){
-        logger.info("Method sendMessage has been run: {}, {}", chatId, text);
+        logger.info("Method sendMessage has been run: {}, {}, {}", chatId, text, messageId);
         SendMessage request = new SendMessage(chatId, text)
                 .parseMode(ParseMode.HTML)
                 .disableWebPagePreview(true)
