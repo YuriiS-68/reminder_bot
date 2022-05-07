@@ -7,24 +7,27 @@ import java.util.StringJoiner;
 
 @Entity
 public class NotificationTask {
+    public enum NotificationStatus{
+        PENDING,
+        SENT
+    }
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-
     private long idChat;
-
     private String notice;
-
     private LocalDateTime time;
-
     private int idMessage;
 
-    public NotificationTask(Long id, long idChat, String notice, LocalDateTime time, int idMessage) {
-        this.id = id;
-        this.idChat = idChat;
+    private LocalDateTime sentDate;
+
+    @Enumerated(EnumType.STRING)
+    private NotificationStatus status = NotificationStatus.PENDING;
+
+    public NotificationTask(String notice, LocalDateTime time, NotificationStatus status) {
         this.notice = notice;
         this.time = time;
-        this.idMessage = idMessage;
+        this.status = status;
     }
 
     public NotificationTask() {
@@ -50,6 +53,27 @@ public class NotificationTask {
         return notice;
     }
 
+    public LocalDateTime getSentDate() {
+        return sentDate;
+    }
+
+    public NotificationStatus getStatus() {
+        return status;
+    }
+
+    public void setSentDate(LocalDateTime sentDate) {
+        this.sentDate = sentDate;
+    }
+
+    public void setStatus(NotificationStatus status) {
+        this.status = status;
+    }
+
+    public void markAsSent(){
+        this.status = NotificationStatus.SENT;
+        this.sentDate = LocalDateTime.now();
+    }
+
     public void setNotice(String notice) {
         this.notice = notice;
     }
@@ -71,13 +95,14 @@ public class NotificationTask {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         NotificationTask that = (NotificationTask) o;
-        return getIdChat() == that.getIdChat() && getMessageId() == that.getMessageId() && getId().equals(that.getId())
-                && getNotice().equals(that.getNotice()) && getTime().equals(that.getTime());
+        return getIdChat() == that.getIdChat() && idMessage == that.idMessage && Objects.equals(getId(), that.getId())
+                && Objects.equals(getNotice(), that.getNotice()) && Objects.equals(getTime(), that.getTime())
+                && Objects.equals(getSentDate(), that.getSentDate()) && getStatus() == that.getStatus();
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(getId(), getIdChat(), getNotice(), getTime(), getMessageId());
+        return Objects.hash(getId(), getIdChat(), getNotice(), getTime(), idMessage, getSentDate(), getStatus());
     }
 
     @Override
@@ -86,8 +111,10 @@ public class NotificationTask {
                 .add("id=" + id)
                 .add("idChat=" + idChat)
                 .add("notice='" + notice + "'")
-                .add("time=" + time + "'")
-                .add("messageId=" + idMessage)
+                .add("time=" + time)
+                .add("idMessage=" + idMessage)
+                .add("sentDate=" + sentDate)
+                .add("status=" + status)
                 .toString();
     }
 }

@@ -14,10 +14,10 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import pro.sky.telegrambot.dao.NoticeRepository;
 import pro.sky.telegrambot.model.NotificationTask;
+import pro.sky.telegrambot.servise.NotificationTaskServiceImpl;
 
 import javax.annotation.PostConstruct;
 import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.time.temporal.ChronoUnit;
 import java.util.IllegalFormatException;
@@ -25,15 +25,20 @@ import java.util.List;
 
 @Service
 public class TelegramBotUpdatesListener implements UpdatesListener {
-
     private final Logger logger = LoggerFactory.getLogger(TelegramBotUpdatesListener.class);
-
+    private static final String START_CMD = "/start";
+    private static final String GREETINGS_USER = "Hello! I`m glad to see you!\nYou can send a message in the " +
+            "following format: dd.MM.yyyy HH:mm text";
+    private static final String INVALID_MESSAGE = "Your message format is not supported";
     private final TelegramBot telegramBot;
     private final NoticeRepository noticeRepository;
+    private final NotificationTaskServiceImpl notificationTaskService;
 
-    public TelegramBotUpdatesListener(TelegramBot telegramBot, NoticeRepository noticeRepository) {
+    public TelegramBotUpdatesListener(TelegramBot telegramBot, NoticeRepository noticeRepository,
+                                      NotificationTaskServiceImpl notificationTaskService) {
         this.telegramBot = telegramBot;
         this.noticeRepository = noticeRepository;
+        this.notificationTaskService = notificationTaskService;
     }
 
     @PostConstruct
@@ -49,20 +54,25 @@ public class TelegramBotUpdatesListener implements UpdatesListener {
             Message message = update.message();
             long chatId = message.chat().id();
             int messageId = message.messageId();
-            if (update.message() != null && update.message().text().equals("/start")){
-                String text = "Hello! I`m glad to see you!";
-                sendMessage(chatId, text, messageId);
+            if (update.message() != null && update.message().text().equals(START_CMD)){
+                sendMessage(chatId, GREETINGS_USER, messageId);
             } else {
                 try{
-                    noticeRepository.save(getMappingNotice(message));
+                    noticeRepository.save(notificationTaskService.getMappingNotice(message));
                 }catch (IllegalFormatException | DateTimeParseException e){
-                    String text = "Your message format is not supported";
-                    sendMessage(chatId, text, messageId);
+                    sendMessage(chatId, INVALID_MESSAGE, messageId);
                     logger.error("Saving to DB failed:", e);
                 }
             }
         });
         return UpdatesListener.CONFIRMED_UPDATES_ALL;
+    }
+
+    @Scheduled(cron = "${interval-daily-cron}")
+    public void deleteOutdatedNotices(){
+        logger.info("Method deleteOutdatedNotices was started");
+        List<NotificationTask> outdatedNotices = noticeRepository.getOutdatedNotificationTask();
+        noticeRepository.deleteAll(outdatedNotices);
     }
 
     @Scheduled(cron = "${interval-in-cron}")
@@ -72,32 +82,9 @@ public class TelegramBotUpdatesListener implements UpdatesListener {
 
         for (NotificationTask notice : notices){
             sendMessage(notice.getIdChat(), notice.getNotice(), notice.getMessageId());
+            notice.markAsSent();
         }
-    }
-
-    private NotificationTask getMappingNotice(Message message){
-        if (message != null){
-            NotificationTask notice = new NotificationTask();
-            notice.setIdChat(message.chat().id());
-            notice.setNotice(message.text().substring(getIndexForSeparate(message)).trim());
-            LocalDateTime dateTime = LocalDateTime.parse(message.text().substring(0, getIndexForSeparate(message)).trim(),
-                    DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm"));
-            notice.setTime(dateTime);
-            System.out.println("message.messageId() = " + message.messageId());
-            notice.setMessageId(message.messageId());
-            return notice;
-        }
-        throw new NullPointerException("Message is not exist");
-    }
-
-    private int getIndexForSeparate(Message message){
-        int index = 0;
-        for (int i = message.text().toCharArray().length - 1; i > 0 ; i--) {
-            if (Character.isLetter(message.text().toCharArray()[i])){
-                index = i;
-            }
-        }
-        return index;
+        noticeRepository.saveAll(notices);
     }
 
     private void sendMessage(long chatId, String text, int messageId){
